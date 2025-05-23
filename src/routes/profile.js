@@ -1,76 +1,54 @@
 const express = require("express");
-const authRouter = express.Router();
-const { validateSignUpData } = require("../utils/userValidation");
-const userModel = require("../models/user");
+const profileRouter = express.Router();
+const userAuth = require("../middlewares/authMiddleware");
+const { validateEditProfileData } = require("../utils/userValidation");
 const bcrypt = require("bcrypt");
-require("dotenv").config();
 
-// signup Route
-authRouter.post("/signup", async (req, res) => {
-  const {
-    password,
-    firstName,
-    lastName,
-    emailId,
-    age,
-    gender,
-    about,
-    skills,
-    photoUrl,
-  } = req.body;
-
+profileRouter.get("/profile/view", userAuth, async (req, res) => {
   try {
-    validateSignUpData(req);
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new userModel({
-      firstName: firstName,
-      lastName: lastName,
-      emailId: emailId,
-      password: hashedPassword,
-      age: age,
-      gender: gender,
-      about: about,
-      skills: skills,
-      photoUrl: photoUrl,
+    const user = req.user;
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({
+      error: "An internal server error occurred. Please try again later.",
     });
-    await user.save();
-    res.status(201).send("User successfully created.");
-  } catch (error) {
-    res.status(500).send(error.message);
   }
 });
 
-// Login route
-authRouter.post("/login", async (req, res) => {
-  const { emailId, password } = req.body;
+profileRouter.patch("/profile/edit", userAuth, async (req, res) => {
   try {
-    if (!emailId || !password) {
-      return res.status(400).send("Email and password are required.");
+    if (!validateEditProfileData(req)) {
+      throw new Error("Invalid Edit request");
     }
-    // Find the user by emailId in the database
-    const user = await userModel.findOne({ emailId: emailId });
-    if (!user) {
-      return res.status(404).send("User not found.");
-    }
-    const isPasswordValid = await user.validatePassword(password);
-    if (isPasswordValid) {
-      // JWT Token.
-      const token = await user.getJwtToken();
-      res.cookie("token", token).json("User is successfully logged in.");
-    } else {
-      return res.status(401).send("Invalid credentials.");
-    }
+    const loggedInUser = req.user;
+    Object.keys(req.body).forEach((key) => (loggedInUser[key] = req.body[key]));
+
+    await loggedInUser.save();
+    res.json({
+      message: `${loggedInUser.firstName}, your profile is updated succesfully.`,
+      data: loggedInUser,
+    });
   } catch (error) {
-    res.status(500).send("An error occurred during login.");
+    res.status(404).send(error.message);
   }
 });
 
-authRouter.post("/logout", async (req, res) => {
-  res
-    .cookie("token", "", { expires: new Date(Date.now()) })
-    .send("Logged Out Succesfull");
+profileRouter.patch("/profile/password", userAuth, async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password) {
+      return res.status(400).send("Password is required");
+    }
+    const hashedPassword = await bcrypt.hash(password, 10);
+    let user = req.user;
+    user.password = hashedPassword;
+    await user.save();
+    res.status(200).send("Password updated successfully");
+  } catch (error) {
+    res.status(500).send("Failed to update password");
+  }
 });
 
 module.exports = {
-  authRouter,
+  profileRouter,
 };
