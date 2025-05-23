@@ -26,6 +26,22 @@ const connectionRequestSchema = new Schema(
   },
 );
 
+// compound index - query with both the params
+connectionRequestSchema.index({
+  fromUserId: 1,
+  toUserId: 1,
+});
+
+connectionRequestSchema.pre("save", function (next) {
+  const connectionRequest = this;
+
+  // check if from and to user Id are same
+  if (connectionRequest.fromUserId.equals(connectionRequest.toUserId)) {
+    throw new Error("You cannot send request to yourself");
+  }
+  next();
+});
+
 const ConnectionRequestModel = mongoose.model(
   "ConnectionRequest",
   connectionRequestSchema,
