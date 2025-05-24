@@ -8,6 +8,7 @@ const { authRouter } = require("./routes/auth");
 const { profileRouter } = require("./routes/profile");
 const { requestRouter } = require("./routes/requests");
 const { userRouter } = require("./routes/user");
+require("dotenv").config();
 
 app.use("/", authRouter);
 app.use("/", profileRouter);
@@ -17,11 +18,9 @@ app.use("/", userRouter);
 // connect to DB.
 connectDB()
   .then(() => {
-    console.log("Database Connection is Successful.");
-    app.listen(3000, () => {
-      console.log("Server on port 3000 is running successfully");
-    });
+    app.listen(process.env.PORT, () => {});
+    console.log("connection successful");
   })
   .catch((err) => {
-    console.log("db connection not succesfull", err);
+    console.log("db connection not Successfull.", err);
   });

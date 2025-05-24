@@ -33,19 +33,34 @@ userRouter.get("/user/requests/received", userAuth, async (req, res) => {
   }
 });
 
-// get all the connections
-
+// get all the user connections.
 userRouter.get("/user/connections", userAuth, async (req, res) => {
   try {
     const loggedInUser = req.user;
     const connections = await ConnectionRequestModel.find({
-      toUserId: loggedInUser._id,
-      status: "accepted",
-    }).populate("User", userData);
+      $or: [
+        { toUserId: loggedInUser._id, status: "accepted" },
+        { fromUserId: loggedInUser._id, status: "accepted" },
+      ],
+    })
+      .populate("fromUserId", userData)
+      .populate("toUserId", userData);
+
+    if (connections.length === 0) {
+      return res.json({
+        message: "There are no connections",
+      });
+    }
+    const data = connections.map((row) => {
+      if (row.fromUserId._id.toString() === loggedInUser._id.toString()) {
+        return row.toUserId;
+      }
+      return row.fromUserId;
+    });
 
     res.json({
       message: "Data fetched succesfully",
-      data: connections,
+      data: data,
     });
   } catch (err) {
     res.status(400).json({
