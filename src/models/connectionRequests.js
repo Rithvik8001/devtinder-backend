@@ -32,10 +32,10 @@ connectionRequestSchema.index({
   toUserId: 1,
 });
 
+// check if from and to user Id are same before saving the request
 connectionRequestSchema.pre("save", function (next) {
   const connectionRequest = this;
 
-  // check if from and to user Id are same
   if (connectionRequest.fromUserId.equals(connectionRequest.toUserId)) {
     throw new Error("You cannot send request to yourself");
   }
