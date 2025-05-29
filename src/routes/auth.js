@@ -7,17 +7,7 @@ require("dotenv").config();
 
 // signup Route
 authRouter.post("/signup", async (req, res) => {
-  const {
-    password,
-    firstName,
-    lastName,
-    emailId,
-    age,
-    gender,
-    about,
-    skills,
-    photoUrl,
-  } = req.body;
+  const { password, firstName, lastName, emailId } = req.body;
 
   try {
     validateSignUpData(req);
@@ -27,14 +17,12 @@ authRouter.post("/signup", async (req, res) => {
       lastName: lastName,
       emailId: emailId,
       password: hashedPassword,
-      age: age,
-      gender: gender,
-      about: about,
-      skills: skills,
-      photoUrl: photoUrl,
     });
-    await user.save();
-    res.status(201).send("User successfully created.");
+    const savedUser = await user.save();
+    res.cookie("token", token, {
+      expires: new Date(Date.now() + 8 * 3600000),
+    });
+    res.json({ message: "User Added successfully!", data: savedUser });
   } catch (error) {
     res.status(500).send(error.message);
   }
@@ -44,31 +32,34 @@ authRouter.post("/signup", async (req, res) => {
 authRouter.post("/login", async (req, res) => {
   const { emailId, password } = req.body;
   try {
-    if (!emailId || !password) {
-      return res.status(400).json("Email and password are required.");
-    }
     // Find the user by emailId in the database
     const user = await userModel.findOne({ emailId: emailId });
     if (!user) {
       return res.status(404).json("User not found.");
     }
+
+    if (!emailId || !password) {
+      return res.status(400).json("Email and password are required.");
+    }
+
     const isPasswordValid = await user.validatePassword(password);
     if (isPasswordValid) {
       // JWT Token.
       const token = await user.getJwtToken();
       res.cookie("token", token).json(user);
+      res.send(user);
     } else {
       return res.status(401).json("Invalid credentials.");
     }
   } catch (error) {
-    res.status(500).json(error);
+    res.status(500).json(error.message);
   }
 });
 
 authRouter.post("/logout", async (req, res) => {
   res
     .cookie("token", "", { expires: new Date(Date.now()) })
-    .send("Logged Out Succesfull");
+    .send("Logout Successful.");
 });
 
 module.exports = {
