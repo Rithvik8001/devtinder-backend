@@ -49,7 +49,9 @@ const userSchema = new Schema(
     },
     photoUrl: {
       type: String,
+      default: "https://github.com/shadcn.png",
     },
+
     about: {
       type: String,
       default: "Here you can tell about yourself",

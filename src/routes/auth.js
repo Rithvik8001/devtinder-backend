@@ -45,23 +45,23 @@ authRouter.post("/login", async (req, res) => {
   const { emailId, password } = req.body;
   try {
     if (!emailId || !password) {
-      return res.status(400).send("Email and password are required.");
+      return res.status(400).json("Email and password are required.");
     }
     // Find the user by emailId in the database
     const user = await userModel.findOne({ emailId: emailId });
     if (!user) {
-      return res.status(404).send("User not found.");
+      return res.status(404).json("User not found.");
     }
     const isPasswordValid = await user.validatePassword(password);
     if (isPasswordValid) {
       // JWT Token.
       const token = await user.getJwtToken();
-      res.cookie("token", token).json("User is successfully logged in.");
+      res.cookie("token", token).json(user);
     } else {
-      return res.status(401).send("Invalid credentials.");
+      return res.status(401).json("Invalid credentials.");
     }
   } catch (error) {
-    res.status(500).send("An error occurred during login.");
+    res.status(500).json(error);
   }
 });
 
